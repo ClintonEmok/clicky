@@ -16,6 +16,11 @@ This roadmap keeps the product desktop-first and immersion-first: expats should 
 **Goal**: Users can quickly understand selected or visible text and save useful language they encounter.
 **Depends on**: Nothing (first phase)
 **Requirements**: READ-01, READ-02, READ-03
+**Plans**: 3 plans
+Plans:
+- [ ] 01-read-in-place-01-PLAN.md — Core lookup flow and inline translation
+- [ ] 01-read-in-place-02-PLAN.md — Ambiguous text explanation
+- [ ] 01-read-in-place-03-PLAN.md — Save vocabulary with source context
 **Success Criteria** (what must be TRUE):
   1. User can select or focus text and get a concise translation without leaving the current task.
   2. Ambiguous or idiomatic text surfaces a short explanation instead of a misleading one-line answer.
@@ -43,6 +48,6 @@ This roadmap keeps the product desktop-first and immersion-first: expats should 
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Read in Place | 0/0 | Not started | - |
+| 1. Read in Place | 0/3 | Not started | - |
 | 2. Write with Guidance | 0/0 | Not started | - |
 | 3. Stay Immersed | 0/0 | Not started | - |
