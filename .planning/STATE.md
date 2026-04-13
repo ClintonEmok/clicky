@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-04-13)
 ## Current Position
 
 Phase: 2 of 4 (OpenAPI-Compatible Models and Local TTS)
-Plan: 2 of 2 in current phase
-Status: Phase complete
-Last activity: 2026-04-13 — Completed plan 02: Local TTS support
+Plan: 1 of 2 in current phase (02-01 just completed)
+Status: In progress
+Last activity: 2026-04-13 — Completed plan 02-01: OpenAPI-compatible model support
 
-Progress: [████░░░░░░] 50%
+Progress: [███░░░░░░░] 37.5%
 
 ## Performance Metrics
 
@@ -43,6 +43,8 @@ Progress: [████░░░░░░] 50%
 - [Phase 1-3]: v1 is reading-first, writing-second, speaking later.
 - [Phase 3]: Immersion mode should reduce interruption and English fallback.
 - [Phase 1]: Contextual help should stay concise and avoid misleading certainty.
+- [Phase 2-01]: OpenAI-compatible settings in companion panel - endpoint URL, API key, model name.
+- [Phase 2-01]: Graceful fallback to Cloudflare Worker if OpenAI endpoint fails.
 
 ### Roadmap Evolution
 
@@ -59,6 +61,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-13 16:35
-Stopped at: Completed plan 02-02 — Local TTS support
-Resume file: None — Phase 2 complete
+Last session: 2026-04-13 16:40
+Stopped at: Completed plan 02-01 — OpenAPI-compatible model support
+Resume file: .planning/phases/02-openapi-local-tts/
