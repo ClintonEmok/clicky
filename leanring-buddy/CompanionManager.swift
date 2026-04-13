@@ -173,6 +173,34 @@ final class CompanionManager: ObservableObject {
         claudeAPI.model = model
     }
 
+    // MARK: - OpenAI-Compatible Model Configuration
+
+    /// OpenAI-compatible endpoint URL. UserDefaults key: "openai_endpoint"
+    @Published var openAIEndpoint: String = UserDefaults.standard.string(forKey: "openai_endpoint") ?? ""
+
+    /// OpenAI-compatible API key. UserDefaults key: "openai_api_key"
+    @Published var openAIAPIKey: String = UserDefaults.standard.string(forKey: "openai_api_key") ?? ""
+
+    /// OpenAI-compatible model name. UserDefaults key: "openai_model_name"
+    @Published var openAIModelName: String = UserDefaults.standard.string(forKey: "openai_model_name") ?? ""
+
+    /// Whether to use OpenAI-compatible endpoint instead of Cloudflare Worker.
+    /// UserDefaults key: "use_openai_compatible"
+    @Published var useOpenAICompatible: Bool = UserDefaults.standard.bool(forKey: "use_openai_compatible")
+
+    /// Saves OpenAI-compatible settings to UserDefaults.
+    func saveOpenAISettings() {
+        UserDefaults.standard.set(openAIEndpoint, forKey: "openai_endpoint")
+        UserDefaults.standard.set(openAIAPIKey, forKey: "openai_api_key")
+        UserDefaults.standard.set(openAIModelName, forKey: "openai_model_name")
+        UserDefaults.standard.set(useOpenAICompatible, forKey: "use_openai_compatible")
+    }
+
+    /// Returns true if OpenAI-compatible endpoint is properly configured.
+    var isOpenAIConfigured: Bool {
+        !openAIEndpoint.isEmpty && !openAIAPIKey.isEmpty && !openAIModelName.isEmpty
+    }
+
     /// The TTS provider used for voice responses. Persisted to UserDefaults.
     @Published var ttsProvider: TTSProvider = {
         if let raw = UserDefaults.standard.string(forKey: "tts_provider"),
@@ -765,15 +793,45 @@ final class CompanionManager: ObservableObject {
                     (userPlaceholder: entry.userTranscript, assistantResponse: entry.assistantResponse)
                 }
 
-                let (fullResponseText, _) = try await claudeAPI.analyzeImageStreaming(
-                    images: labeledImages,
-                    systemPrompt: Self.companionVoiceResponseSystemPrompt,
-                    conversationHistory: historyForAPI,
-                    userPrompt: transcript,
-                    onTextChunk: { _ in
-                        // No streaming text display — spinner stays until TTS plays
+                // Try OpenAI-compatible endpoint first if enabled, fall back to Claude via Cloudflare Worker
+                let fullResponseText: String
+                if useOpenAICompatible && isOpenAIConfigured {
+                    do {
+                        let openAIClient = OpenAICompatibleClient(proxyURL: openAIEndpoint, apiKey: openAIAPIKey, model: openAIModelName)
+                        (fullResponseText, _) = try await openAIClient.analyzeTextStreaming(
+                            images: labeledImages,
+                            systemPrompt: Self.companionVoiceResponseSystemPrompt,
+                            conversationHistory: historyForAPI,
+                            userPrompt: transcript,
+                            onTextChunk: { _ in
+                                // No streaming text display — spinner stays until TTS plays
+                            }
+                        )
+                    } catch {
+                        // OpenAI-compatible endpoint failed, fall back to Cloudflare Worker
+                        print("⚠️ OpenAI-compatible endpoint failed (\(error.localizedDescription)), falling back to Claude")
+                        (fullResponseText, _) = try await claudeAPI.analyzeImageStreaming(
+                            images: labeledImages,
+                            systemPrompt: Self.companionVoiceResponseSystemPrompt,
+                            conversationHistory: historyForAPI,
+                            userPrompt: transcript,
+                            onTextChunk: { _ in
+                                // No streaming text display — spinner stays until TTS plays
+                            }
+                        )
                     }
-                )
+                } else {
+                    // Use Cloudflare Worker (Claude) directly
+                    (fullResponseText, _) = try await claudeAPI.analyzeImageStreaming(
+                        images: labeledImages,
+                        systemPrompt: Self.companionVoiceResponseSystemPrompt,
+                        conversationHistory: historyForAPI,
+                        userPrompt: transcript,
+                        onTextChunk: { _ in
+                            // No streaming text display — spinner stays until TTS plays
+                        }
+                    )
+                }
 
                 guard !Task.isCancelled else { return }
 
