@@ -13,6 +13,7 @@ import SwiftUI
 struct CompanionPanelView: View {
     @ObservedObject var companionManager: CompanionManager
     @State private var emailInput: String = ""
+    @State private var openAIConfigExpanded: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -33,6 +34,9 @@ struct CompanionPanelView: View {
                     .padding(.horizontal, 16)
 
                 ttsPickerRow
+                    .padding(.horizontal, 16)
+
+                openAISettingsSection
                     .padding(.horizontal, 16)
             }
 
@@ -763,6 +767,57 @@ struct CompanionPanelView: View {
         }
         .buttonStyle(.plain)
         .pointerCursor()
+    }
+
+    // MARK: - OpenAI-Compatible Model Settings
+
+    private var openAISettingsSection: some View {
+        DisclosureGroup("OpenAI-Compatible Model", isExpanded: $openAIConfigExpanded) {
+            VStack(alignment: .leading, spacing: 8) {
+                TextField("Endpoint URL (e.g., https://api.openai.com/v1)", text: $companionManager.openAIEndpoint)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.system(size: 11))
+                    .onChange(of: companionManager.openAIEndpoint) { _, _ in
+                        companionManager.saveOpenAISettings()
+                    }
+
+                SecureField("API Key", text: $companionManager.openAIAPIKey)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.system(size: 11))
+                    .onChange(of: companionManager.openAIAPIKey) { _, _ in
+                        companionManager.saveOpenAISettings()
+                    }
+
+                TextField("Model Name (e.g., gpt-4o-mini)", text: $companionManager.openAIModelName)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.system(size: 11))
+                    .onChange(of: companionManager.openAIModelName) { _, _ in
+                        companionManager.saveOpenAISettings()
+                    }
+
+                Toggle("Use OpenAI-Compatible Endpoint", isOn: $companionManager.useOpenAICompatible)
+                    .toggleStyle(.switch)
+                    .tint(DS.Colors.accent)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(DS.Colors.textSecondary)
+                    .onChange(of: companionManager.useOpenAICompatible) { _, _ in
+                        companionManager.saveOpenAISettings()
+                    }
+
+                if companionManager.useOpenAICompatible && companionManager.isOpenAIConfigured {
+                    Text("Using: \(companionManager.openAIModelName) @ \(companionManager.openAIEndpoint)")
+                        .font(.system(size: 10))
+                        .foregroundStyle(DS.Colors.textTertiary)
+                } else if companionManager.useOpenAICompatible {
+                    Text("Please configure endpoint, API key, and model name")
+                        .font(.system(size: 10))
+                        .foregroundStyle(DS.Colors.warning)
+                }
+            }
+            .padding(.top, 8)
+        }
+        .font(.system(size: 13, weight: .medium))
+        .foregroundColor(DS.Colors.textSecondary)
     }
 
     // MARK: - DM Farza Button
