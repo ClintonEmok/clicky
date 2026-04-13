@@ -8,6 +8,7 @@
 //
 
 import AVFoundation
+import AppKit
 import Combine
 import Foundation
 import PostHog
@@ -21,6 +22,18 @@ enum CompanionVoiceState {
     case responding
 }
 
+enum ReadingLookupState: Equatable {
+    case idle
+    case loading
+    case success
+    case error(String)
+}
+
+enum TTSProvider: String {
+    case elevenlabs = "elevenlabs"
+    case local = "local"
+}
+
 @MainActor
 final class CompanionManager: ObservableObject {
     @Published private(set) var voiceState: CompanionVoiceState = .idle
@@ -30,6 +43,10 @@ final class CompanionManager: ObservableObject {
     @Published private(set) var hasScreenRecordingPermission = false
     @Published private(set) var hasMicrophonePermission = false
     @Published private(set) var hasScreenContentPermission = false
+    @Published private(set) var readingLookupState: ReadingLookupState = .idle
+    @Published private(set) var latestReadingLookupResult: ReadingLookupResult?
+    @Published private(set) var latestReadingLookupError: String?
+    @Published private(set) var readingVocabularyItems: [ReadingVocabularyItem] = []
 
     /// Screen location (global AppKit coords) of a detected UI element the
     /// buddy should fly to and point at. Parsed from Claude's response;
@@ -80,6 +97,45 @@ final class CompanionManager: ObservableObject {
         return ElevenLabsTTSClient(proxyURL: "\(Self.workerBaseURL)/tts")
     }()
 
+    private lazy var localTTSClient: LocalTTSClient = {
+        return LocalTTSClient()
+    }()
+
+    /// Returns the active TTS client based on user preference.
+    private func activeTTSClient() -> (speak: (String) async throws -> Void, stop: () -> Void, isPlaying: () -> Bool) {
+        switch ttsProvider {
+        case .local:
+            return (speak: { text in try await self.localTTSClient.speakText(text) },
+                    stop: { self.localTTSClient.stopPlayback() },
+                    isPlaying: { self.localTTSClient.isPlaying })
+        case .elevenlabs:
+            return (speak: { text in try await self.elevenLabsTTSClient.speakText(text) },
+                    stop: { self.elevenLabsTTSClient.stopPlayback() },
+                    isPlaying: { self.elevenLabsTTSClient.isPlaying })
+        }
+    }
+
+    /// Speaks text using the active TTS provider, falling back to ElevenLabs on failure.
+    private func speakWithFallback(_ text: String) async {
+        let client = activeTTSClient()
+        do {
+            try await client.speak(text)
+        } catch {
+            print("⚠️ Local TTS error, falling back to ElevenLabs: \(error)")
+            try? await elevenLabsTTSClient.speakText(text)
+        }
+    }
+
+    private lazy var readingLookupManager: ReadingLookupManager = {
+        return ReadingLookupManager(claudeAPI: claudeAPI)
+    }()
+
+    private let readingVocabularyStore = ReadingVocabularyStore()
+
+    init() {
+        readingVocabularyItems = readingVocabularyStore.items
+    }
+
     /// Conversation history so Claude remembers prior exchanges within a session.
     /// Each entry is the user's transcript and Claude's response.
     private var conversationHistory: [(userTranscript: String, assistantResponse: String)] = []
@@ -87,6 +143,7 @@ final class CompanionManager: ObservableObject {
     /// The currently running AI response task, if any. Cancelled when the user
     /// speaks again so a new response can begin immediately.
     private var currentResponseTask: Task<Void, Never>?
+    private var currentReadingLookupTask: Task<Void, Never>?
 
     private var shortcutTransitionCancellable: AnyCancellable?
     private var voiceStateCancellable: AnyCancellable?
@@ -114,6 +171,20 @@ final class CompanionManager: ObservableObject {
         selectedModel = model
         UserDefaults.standard.set(model, forKey: "selectedClaudeModel")
         claudeAPI.model = model
+    }
+
+    /// The TTS provider used for voice responses. Persisted to UserDefaults.
+    @Published var ttsProvider: TTSProvider = {
+        if let raw = UserDefaults.standard.string(forKey: "tts_provider"),
+           let provider = TTSProvider(rawValue: raw) {
+            return provider
+        }
+        return .elevenlabs
+    }()
+
+    func setTTSProvider(_ provider: TTSProvider) {
+        ttsProvider = provider
+        UserDefaults.standard.set(provider.rawValue, forKey: "tts_provider")
     }
 
     /// User preference for whether the Clicky cursor should be shown.
@@ -287,11 +358,95 @@ final class CompanionManager: ObservableObject {
         detectedElementBubbleText = nil
     }
 
+    func startReadingLookup(
+        sourceText: String? = nil,
+        sourceContext: String? = nil,
+        sourceAppName: String? = nil
+    ) {
+        currentReadingLookupTask?.cancel()
+        currentReadingLookupTask = nil
+
+        let resolvedSourceText = (sourceText
+            ?? AccessibilitySelectionReader.selectedText()
+            ?? NSPasteboard.general.string(forType: .string)
+            ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let resolvedSourceContext = (sourceContext ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let resolvedSourceAppName = (sourceAppName ?? NSWorkspace.shared.frontmostApplication?.localizedName ?? "Unknown App")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !resolvedSourceText.isEmpty else {
+            latestReadingLookupResult = nil
+            latestReadingLookupError = "No text is available to look up."
+            readingLookupState = .error(latestReadingLookupError ?? "Unknown lookup error.")
+            return
+        }
+
+        readingLookupState = .loading
+        latestReadingLookupResult = nil
+        latestReadingLookupError = nil
+
+        currentReadingLookupTask = Task { [weak self] in
+            guard let self else { return }
+
+            do {
+                let lookupResult = try await readingLookupManager.lookup(
+                    request: ReadingLookupRequest(
+                        sourceText: resolvedSourceText,
+                        sourceContext: resolvedSourceContext,
+                        sourceAppName: resolvedSourceAppName
+                    )
+                )
+
+                guard !Task.isCancelled else { return }
+
+                latestReadingLookupResult = lookupResult
+                latestReadingLookupError = nil
+                readingLookupState = .success
+            } catch is CancellationError {
+                return
+            } catch {
+                guard !Task.isCancelled else { return }
+
+                latestReadingLookupResult = nil
+                latestReadingLookupError = error.localizedDescription
+                readingLookupState = .error(error.localizedDescription)
+            }
+        }
+    }
+
+    func saveReadingVocabularyItem(from result: ReadingLookupResult) {
+        let item = ReadingVocabularyItem(
+            lookupID: result.lookupID,
+            originalText: result.originalText,
+            translatedText: result.translatedText,
+            explanation: result.explanation,
+            sourceAppName: result.sourceAppName,
+            sourceContext: result.sourceContext,
+            capturedAt: Date()
+        )
+
+        readingVocabularyStore.add(item)
+        readingVocabularyItems = readingVocabularyStore.items
+    }
+
+    func deleteReadingVocabularyItem(id: String) {
+        readingVocabularyStore.remove(id: id)
+        readingVocabularyItems = readingVocabularyStore.items
+    }
+
+    func clearReadingVocabularyItems() {
+        readingVocabularyStore.clear()
+        readingVocabularyItems = readingVocabularyStore.items
+    }
+
     func stop() {
         globalPushToTalkShortcutMonitor.stop()
         buddyDictationManager.cancelCurrentDictation()
         overlayWindowManager.hideOverlay()
         transientHideTask?.cancel()
+        currentReadingLookupTask?.cancel()
+        currentReadingLookupTask = nil
 
         currentResponseTask?.cancel()
         currentResponseTask = nil
@@ -493,7 +648,7 @@ final class CompanionManager: ObservableObject {
 
             // Cancel any in-progress response and TTS from a previous utterance
             currentResponseTask?.cancel()
-            elevenLabsTTSClient.stopPlayback()
+            activeTTSClient().stop()
             clearDetectedElementLocation()
 
             // Dismiss the onboarding prompt if it's showing
@@ -585,7 +740,7 @@ final class CompanionManager: ObservableObject {
     /// the buddy to fly to that element on screen.
     private func sendTranscriptToClaudeWithScreenshot(transcript: String) {
         currentResponseTask?.cancel()
-        elevenLabsTTSClient.stopPlayback()
+        activeTTSClient().stop()
 
         currentResponseTask = Task {
             // Stay in processing (spinner) state — no streaming text displayed
@@ -700,15 +855,9 @@ final class CompanionManager: ObservableObject {
                 // Play the response via TTS. Keep the spinner (processing state)
                 // until the audio actually starts playing, then switch to responding.
                 if !spokenText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    do {
-                        try await elevenLabsTTSClient.speakText(spokenText)
-                        // speakText returns after player.play() — audio is now playing
-                        voiceState = .responding
-                    } catch {
-                        ClickyAnalytics.trackTTSError(error: error.localizedDescription)
-                        print("⚠️ ElevenLabs TTS error: \(error)")
-                        speakCreditsErrorFallback()
-                    }
+                    await speakWithFallback(spokenText)
+                    // speakWithFallback returns after audio starts (or after fallback succeeds)
+                    voiceState = .responding
                 }
             } catch is CancellationError {
                 // User spoke again — response was interrupted
@@ -735,7 +884,7 @@ final class CompanionManager: ObservableObject {
         transientHideTask?.cancel()
         transientHideTask = Task {
             // Wait for TTS audio to finish playing
-            while elevenLabsTTSClient.isPlaying {
+            while activeTTSClient().isPlaying() {
                 try? await Task.sleep(nanoseconds: 200_000_000)
                 guard !Task.isCancelled else { return }
             }
