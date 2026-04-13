@@ -31,6 +31,9 @@ struct CompanionPanelView: View {
 
                 modelPickerRow
                     .padding(.horizontal, 16)
+
+                ttsPickerRow
+                    .padding(.horizontal, 16)
             }
 
             if !companionManager.allPermissionsGranted {
@@ -62,6 +65,12 @@ struct CompanionPanelView: View {
                 Spacer()
                     .frame(height: 16)
 
+                readingSection
+                    .padding(.horizontal, 16)
+
+                Spacer()
+                    .frame(height: 16)
+
                 dmFarzaButton
                     .padding(.horizontal, 16)
             }
@@ -79,6 +88,76 @@ struct CompanionPanelView: View {
         }
         .frame(width: 320)
         .background(panelBackground)
+    }
+
+    private var readingSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("Reading")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(DS.Colors.textSecondary)
+
+                Spacer()
+
+                Button(action: {
+                    companionManager.startReadingLookup()
+                }) {
+                    Text("Lookup")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(DS.Colors.textOnAccent)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(
+                            Capsule()
+                                .fill(DS.Colors.accent)
+                        )
+                }
+                .buttonStyle(.plain)
+                .pointerCursor()
+            }
+
+            switch companionManager.readingLookupState {
+            case .idle:
+                Text("Lookup selected or clipboard text without leaving the task.")
+                    .font(.system(size: 11))
+                    .foregroundColor(DS.Colors.textTertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+            case .loading:
+                HStack(spacing: 8) {
+                    ProgressView()
+                        .scaleEffect(0.7)
+                    Text("Translating…")
+                        .font(.system(size: 11))
+                        .foregroundColor(DS.Colors.textTertiary)
+                }
+            case .success:
+                if let result = companionManager.latestReadingLookupResult {
+                    ReadingLookupResultView(
+                        result: result,
+                        isSaved: companionManager.readingVocabularyItems.contains { $0.lookupID == result.lookupID },
+                        isSaving: false,
+                        onSave: {
+                            companionManager.saveReadingVocabularyItem(from: result)
+                        }
+                    )
+                }
+            case .error(let message):
+                Text(message)
+                    .font(.system(size: 11))
+                    .foregroundColor(DS.Colors.warning)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            ReadingVocabularyListView(
+                items: companionManager.readingVocabularyItems,
+                onClearAll: {
+                    companionManager.clearReadingVocabularyItems()
+                },
+                onDeleteItem: { id in
+                    companionManager.deleteReadingVocabularyItem(id: id)
+                }
+            )
+        }
     }
 
     // MARK: - Header
@@ -626,6 +705,51 @@ struct CompanionPanelView: View {
         let isSelected = companionManager.selectedModel == modelID
         return Button(action: {
             companionManager.setSelectedModel(modelID)
+        }) {
+            Text(label)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundColor(isSelected ? DS.Colors.textPrimary : DS.Colors.textTertiary)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(
+                    RoundedRectangle(cornerRadius: 5, style: .continuous)
+                        .fill(isSelected ? Color.white.opacity(0.1) : Color.clear)
+                )
+        }
+        .buttonStyle(.plain)
+        .pointerCursor()
+    }
+
+    // MARK: - TTS Picker
+
+    private var ttsPickerRow: some View {
+        HStack {
+            Text("Voice")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(DS.Colors.textSecondary)
+
+            Spacer()
+
+            HStack(spacing: 0) {
+                ttsOptionButton(label: "ElevenLabs", provider: .elevenlabs)
+                ttsOptionButton(label: "Local", provider: .local)
+            }
+            .background(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(Color.white.opacity(0.06))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .stroke(DS.Colors.borderSubtle, lineWidth: 0.5)
+            )
+        }
+        .padding(.vertical, 4)
+    }
+
+    private func ttsOptionButton(label: String, provider: TTSProvider) -> some View {
+        let isSelected = companionManager.ttsProvider == provider
+        return Button(action: {
+            companionManager.setTTSProvider(provider)
         }) {
             Text(label)
                 .font(.system(size: 11, weight: .medium))
