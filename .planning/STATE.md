@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-04-13)
 
 **Core value:** Help expats keep using their computer in the target language without getting stuck.
-**Current focus:** Phase 2: OpenAPI-Compatible Models and Local TTS
+**Current focus:** Phase 4: Stay Immersed
 
 ## Current Position
 
-Phase: 2 of 4 (OpenAPI-Compatible Models and Local TTS)
-Plan: 1 of 2 in current phase (02-01 just completed)
-Status: In progress
-Last activity: 2026-04-13 — Completed plan 02-01: OpenAPI-compatible model support
+Phase: 4 of 4 (Stay Immersed)
+Plan: 0 of 2 in current phase
+Status: Planned
+Last activity: 2026-05-08 — Created Phase 4 plans: Localization and Immersion Mode
 
-Progress: [███░░░░░░░] 37.5%
+Progress: [████████░░] 80%
 
 ## Performance Metrics
 
@@ -30,11 +30,11 @@ Progress: [███░░░░░░░] 37.5%
 | 1. Read in Place | 3 | 3 | 2026-04-13 |
 | 2. OpenAPI-Compatible Models and Local TTS | 2 | 2 | 2026-04-13 |
 | 3. Write with Guidance | 0 | 0 | - |
-| 4. Stay Immersed | 0 | 0 | - |
+| 4. Stay Immersed | 2 | 0 | - |
 
 **Recent Trend:**
 - Last 5 plans: 01, 02, 03
-- Trend: Completed phase 1
+- Trend: Planned Phase 4 — Localization and Immersion Mode
 
 ## Accumulated Context
 
@@ -61,6 +61,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-13 16:40
-Stopped at: Completed plan 02-01 — OpenAPI-compatible model support
-Resume file: .planning/phases/02-openapi-local-tts/
+Last session: 2026-05-08
+Stopped at: Planned Phase 4 — Localization and Immersion Mode (2 plans)
+Resume file: .planning/phases/04-stay-immersed/

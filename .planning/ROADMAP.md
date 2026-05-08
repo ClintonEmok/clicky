@@ -53,6 +53,10 @@ Plans:
 **Goal**: Users can keep the app itself and its assistance mostly in the target language while staying in flow.
 **Depends on**: Phase 3
 **Requirements**: IMMR-01, IMMR-02
+**Plans**: 2 plans
+Plans:
+- [ ] 04-stay-immersed-01-PLAN.md — Target language localization (String Catalog, language config, localized UI)
+- [ ] 04-stay-immersed-02-PLAN.md — Immersion mode and subtle help (auto-dismiss, non-blocking flow, immersion levels)
 **Success Criteria** (what must be TRUE):
   1. The app can present its interface mostly in the target language with only minimal English fallback.
   2. Help appears inline and contextually instead of forcing modal interruptions.
@@ -65,5 +69,5 @@ Plans:
 | 1. Read in Place | 3/3 | Complete | 2026-04-13 |
 | 2. OpenAPI-Compatible Models and Local TTS | 0/0 | Not started | - |
 | 3. Write with Guidance | 0/0 | Not started | - |
-| 4. Stay Immersed | 0/0 | Not started | - |
+| 4. Stay Immersed | 0/2 | Planned | - |
 
