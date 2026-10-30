@@ -6,7 +6,7 @@
 import Foundation
 
 /// Claude API helper with streaming for progressive text display.
-class ClaudeAPI {
+class ClaudeAPI: ReadingLookupClient {
     private static let tlsWarmupLock = NSLock()
     private static var hasStartedTLSWarmup = false
 
@@ -34,6 +34,53 @@ class ClaudeAPI {
         // connection. This caches the TLS session ticket so the first real API call
         // (which carries a large image payload) doesn't need a cold TLS handshake.
         warmUpTLSConnectionIfNeeded()
+    }
+
+    func analyzeText(
+        systemPrompt: String,
+        userPrompt: String
+    ) async throws -> (text: String, duration: TimeInterval) {
+        let startTime = Date()
+
+        var request = makeAPIRequest()
+
+        let body: [String: Any] = [
+            "model": model,
+            "max_tokens": 256,
+            "system": systemPrompt,
+            "messages": [
+                ["role": "user", "content": userPrompt]
+            ]
+        ]
+
+        let bodyData = try JSONSerialization.data(withJSONObject: body)
+        request.httpBody = bodyData
+
+        let (data, response) = try await session.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200...299).contains(httpResponse.statusCode) else {
+            let responseString = String(data: data, encoding: .utf8) ?? "Unknown error"
+            throw NSError(
+                domain: "ClaudeAPI",
+                code: (response as? HTTPURLResponse)?.statusCode ?? -1,
+                userInfo: [NSLocalizedDescriptionKey: "API Error: \(responseString)"]
+            )
+        }
+
+        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        guard let content = json?["content"] as? [[String: Any]],
+              let textBlock = content.first(where: { ($0["type"] as? String) == "text" }),
+              let text = textBlock["text"] as? String else {
+            throw NSError(
+                domain: "ClaudeAPI",
+                code: -1,
+                userInfo: [NSLocalizedDescriptionKey: "Invalid response format"]
+            )
+        }
+
+        let duration = Date().timeIntervalSince(startTime)
+        return (text: text, duration: duration)
     }
 
     private func makeAPIRequest() -> URLRequest {

@@ -176,17 +176,17 @@ final class CompanionManager: ObservableObject {
     // MARK: - OpenAI-Compatible Model Configuration
 
     /// OpenAI-compatible endpoint URL. UserDefaults key: "openai_endpoint"
-    @Published var openAIEndpoint: String = UserDefaults.standard.string(forKey: "openai_endpoint") ?? ""
+    @Published var openAIEndpoint: String = UserDefaults.standard.string(forKey: "openai_endpoint") ?? "http://localhost:1234/v1"
 
     /// OpenAI-compatible API key. UserDefaults key: "openai_api_key"
     @Published var openAIAPIKey: String = UserDefaults.standard.string(forKey: "openai_api_key") ?? ""
 
     /// OpenAI-compatible model name. UserDefaults key: "openai_model_name"
-    @Published var openAIModelName: String = UserDefaults.standard.string(forKey: "openai_model_name") ?? ""
+    @Published var openAIModelName: String = UserDefaults.standard.string(forKey: "openai_model_name") ?? "gemma-4-e4b-it"
 
     /// Whether to use OpenAI-compatible endpoint instead of Cloudflare Worker.
     /// UserDefaults key: "use_openai_compatible"
-    @Published var useOpenAICompatible: Bool = UserDefaults.standard.bool(forKey: "use_openai_compatible")
+    @Published var useOpenAICompatible: Bool = true
 
     /// Saves OpenAI-compatible settings to UserDefaults.
     func saveOpenAISettings() {
@@ -198,7 +198,7 @@ final class CompanionManager: ObservableObject {
 
     /// Returns true if OpenAI-compatible endpoint is properly configured.
     var isOpenAIConfigured: Bool {
-        !openAIEndpoint.isEmpty && !openAIAPIKey.isEmpty && !openAIModelName.isEmpty
+        !openAIEndpoint.isEmpty && !openAIModelName.isEmpty
     }
 
     /// The TTS provider used for voice responses. Persisted to UserDefaults.

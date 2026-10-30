@@ -24,7 +24,9 @@ final class AssemblyAIStreamingTranscriptionProvider: BuddyTranscriptionProvider
     let displayName = "AssemblyAI"
     let requiresSpeechRecognitionPermission = false
 
-    var isConfigured: Bool { true }
+    var isConfigured: Bool {
+        !Self.tokenProxyURL.contains("your-worker-name")
+    }
     var unavailableExplanation: String? { nil }
 
     /// Single long-lived URLSession shared across all streaming sessions.

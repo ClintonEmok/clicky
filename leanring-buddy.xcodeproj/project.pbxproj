@@ -32,6 +32,11 @@
 		28F22CBF2F56440300A0FC59 /* Clicky.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Clicky.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		28F22CCC2F56440300A0FC59 /* leanring-buddyTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "leanring-buddyTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		28F22CD62F56440300A0FC59 /* leanring-buddyUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "leanring-buddyUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		AAB001001234000000000001 /* AccessibilitySelectionReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilitySelectionReader.swift; sourceTree = "<group>"; };
+		AAB001001234000000000002 /* ReadingLookupManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingLookupManager.swift; sourceTree = "<group>"; };
+		AAB001001234000000000003 /* ReadingLookupResultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingLookupResultView.swift; sourceTree = "<group>"; };
+		AAB001001234000000000004 /* ReadingVocabularyListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingVocabularyListView.swift; sourceTree = "<group>"; };
+		AAB001001234000000000005 /* ReadingVocabularyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingVocabularyStore.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -39,6 +44,15 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = "leanring-buddy";
 			sourceTree = "<group>";
+			explicitFileTypes = {
+			};
+			exceptions = (
+				AAB001001234000000000001 /* AccessibilitySelectionReader.swift */,
+				AAB001001234000000000002 /* ReadingLookupManager.swift */,
+				AAB001001234000000000003 /* ReadingLookupResultView.swift */,
+				AAB001001234000000000004 /* ReadingVocabularyListView.swift */,
+				AAB001001234000000000005 /* ReadingVocabularyStore.swift */,
+			);
 		};
 		28F22CCF2F56440300A0FC59 /* leanring-buddyTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;

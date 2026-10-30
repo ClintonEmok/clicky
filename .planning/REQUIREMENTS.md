@@ -44,10 +44,12 @@
 | READ-01 | Phase 1 | Pending |
 | READ-02 | Phase 1 | Pending |
 | READ-03 | Phase 1 | Pending |
-| WRITE-01 | Phase 2 | Pending |
-| WRITE-02 | Phase 2 | Pending |
-| IMMR-01 | Phase 3 | Pending |
-| IMMR-02 | Phase 3 | Pending |
+| TBD (OpenAPI) | Phase 2 | Pending |
+| TBD (Local TTS) | Phase 2 | Pending |
+| WRITE-01 | Phase 3 | Pending |
+| WRITE-02 | Phase 3 | Pending |
+| IMMR-01 | Phase 4 | Pending |
+| IMMR-02 | Phase 4 | Pending |
 
 **Coverage:**
 - v1 requirements: 7 total
